@@ -14,6 +14,7 @@ import {
   AlertOctagon,
   Trash2,
   Lightbulb,
+  UtensilsCrossed,
 } from "lucide-react";
 
 interface ScanResultsProps {
@@ -31,48 +32,79 @@ export default function ScanResults({
 }: ScanResultsProps) {
   const feedback = getHealthFeedback(items, profileType);
 
-  // Helper for GI coloring
   const getGIBadge = (gi: number) => {
-    if (gi === 0) return { label: "N/A", style: "bg-zinc-800 text-zinc-500 border-zinc-700" };
-    if (gi < 55) return { label: `Low GI: ${gi}`, style: "bg-green-950/30 text-green-400 border-green-800/40" };
-    if (gi < 70) return { label: `Med GI: ${gi}`, style: "bg-yellow-950/30 text-yellow-400 border-yellow-800/40" };
-    return { label: `High GI: ${gi}`, style: "bg-pink-950/30 text-pink-400 border-pink-800/40 animate-pulse" };
+    if (gi === 0)
+      return {
+        label: "N/A",
+        style: "bg-zinc-800 text-zinc-500 border-zinc-700",
+      };
+    if (gi < 55)
+      return {
+        label: `Low ${gi}`,
+        style: "bg-green-950/40 text-green-400 border-green-800/50",
+      };
+    if (gi < 70)
+      return {
+        label: `Med ${gi}`,
+        style: "bg-yellow-950/40 text-yellow-400 border-yellow-800/50",
+      };
+    return {
+      label: `High ${gi}`,
+      style: "bg-pink-950/40 text-pink-400 border-pink-800/50",
+    };
   };
 
   const getStatusIcon = (status: typeof feedback.status) => {
     switch (status) {
       case "excellent":
-        return <CheckCircle className="w-6 h-6 text-green-400" />;
+        return <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-400" />;
       case "warning":
-        return <AlertTriangle className="w-6 h-6 text-yellow-400" />;
+        return (
+          <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400" />
+        );
       case "danger":
-        return <AlertOctagon className="w-6 h-6 text-pink-500" />;
+        return (
+          <AlertOctagon className="w-5 h-5 sm:w-6 sm:h-6 text-pink-500" />
+        );
     }
   };
 
   const getStatusBanner = (status: typeof feedback.status) => {
     switch (status) {
       case "excellent":
-        return "border-green-800/40 bg-green-950/10 text-green-300";
+        return "border-green-800/50 bg-green-950/20 text-green-300";
       case "warning":
-        return "border-yellow-800/40 bg-yellow-950/10 text-yellow-300";
+        return "border-yellow-800/50 bg-yellow-950/20 text-yellow-300";
       case "danger":
-        return "border-pink-800/40 bg-pink-950/10 text-pink-300";
+        return "border-pink-800/50 bg-pink-950/20 text-pink-300";
     }
   };
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* 1. Scanned Items List */}
-      <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-5">
-        <h3 className="text-base font-bold text-zinc-100 mb-4">Detected Plate Contents</h3>
-        
+    <section className="flex flex-col gap-4 sm:gap-5 animate-fade-up">
+      {/* Detected items */}
+      <div className="card-surface p-4 sm:p-5">
+        <h2 className="text-base sm:text-lg font-bold text-zinc-100 flex items-center gap-2 mb-4">
+          <UtensilsCrossed className="w-5 h-5 text-purple-400 shrink-0" />
+          Detected Items
+          {items.length > 0 && (
+            <span className="ml-auto text-xs font-semibold bg-zinc-800 text-zinc-400 px-2.5 py-1 rounded-full">
+              {items.length}
+            </span>
+          )}
+        </h2>
+
         {items.length === 0 ? (
-          <div className="text-center py-8 text-zinc-500 text-sm">
-            No items scanned yet. Use the camera tool above to scan your plate.
+          <div className="text-center py-10 px-4">
+            <div className="w-14 h-14 rounded-2xl bg-zinc-800/60 flex items-center justify-center mx-auto mb-3">
+              <UtensilsCrossed className="w-7 h-7 text-zinc-600" />
+            </div>
+            <p className="text-sm text-zinc-500 leading-relaxed">
+              No items yet. Scan a plate or try a sample above.
+            </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3.5">
+          <div className="flex flex-col gap-3">
             {items.map((item) => {
               const food = BANGLADESHI_FOOD_DB[item.foodId];
               if (!food) return null;
@@ -81,58 +113,62 @@ export default function ScanResults({
               return (
                 <div
                   key={item.foodId}
-                  className="flex items-center justify-between p-3 rounded-xl border border-zinc-800 bg-zinc-900/20 hover:border-zinc-700/80 transition-colors"
+                  className="p-3.5 sm:p-4 rounded-xl border border-zinc-800/80 bg-zinc-900/30"
                 >
-                  <div className="flex flex-col gap-1 overflow-hidden pr-2">
-                    <div className="flex items-baseline gap-1.5 flex-wrap">
-                      <span className="font-semibold text-sm text-zinc-200 truncate">
-                        {food.name}
-                      </span>
-                      <span className="text-xs text-zinc-500">
-                        {food.banglaName}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] text-zinc-400 font-medium">
-                        Portion: {food.servingSize}
-                      </span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded border font-semibold ${giBadge.style}`}>
-                        {giBadge.label}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Quantity and Actions Controls */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    <div className="flex items-center bg-zinc-950/60 border border-zinc-800 rounded-lg p-1">
-                      <button
-                        onClick={() => onUpdateQuantity(item.foodId, -0.5)}
-                        disabled={item.quantity <= 0.5}
-                        className="p-1 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 rounded disabled:opacity-40"
-                        title="Decrease portion"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="text-xs font-bold text-zinc-200 px-2.5 w-10 text-center">
-                        {item.quantity}x
-                      </span>
-                      <button
-                        onClick={() => onUpdateQuantity(item.foodId, 0.5)}
-                        className="p-1 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 rounded"
-                        title="Increase portion"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
+                  {/* Food info — full width on mobile */}
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="font-semibold text-sm sm:text-base text-zinc-100">
+                          {food.name}
+                        </span>
+                        <span className="text-xs text-zinc-500">
+                          {food.banglaName}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <span className="text-[11px] text-zinc-500">
+                          {food.servingSize}
+                        </span>
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-md border font-semibold ${giBadge.style}`}
+                        >
+                          GI {giBadge.label}
+                        </span>
+                      </div>
                     </div>
 
-                    <button
-                      onClick={() => onRemoveItem(item.foodId)}
-                      className="p-2 text-zinc-500 hover:text-pink-400 hover:bg-pink-950/20 rounded-lg border border-transparent hover:border-pink-900/30 transition-all"
-                      title="Remove item"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {/* Controls — row below on mobile, inline on desktop */}
+                    <div className="flex items-center justify-between sm:justify-end gap-2 mt-3 sm:mt-0 shrink-0">
+                      <div className="flex items-center bg-zinc-950 border border-zinc-800 rounded-xl p-1">
+                        <button
+                          onClick={() => onUpdateQuantity(item.foodId, -0.5)}
+                          disabled={item.quantity <= 0.5}
+                          className="p-2.5 text-zinc-400 active:text-zinc-100 active:bg-zinc-800 rounded-lg disabled:opacity-30 touch-target"
+                          aria-label="Decrease portion"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="text-sm font-bold text-zinc-100 px-3 min-w-[3rem] text-center tabular-nums">
+                          {item.quantity}x
+                        </span>
+                        <button
+                          onClick={() => onUpdateQuantity(item.foodId, 0.5)}
+                          className="p-2.5 text-zinc-400 active:text-zinc-100 active:bg-zinc-800 rounded-lg touch-target"
+                          aria-label="Increase portion"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => onRemoveItem(item.foodId)}
+                        className="p-3 text-zinc-500 active:text-pink-400 active:bg-pink-950/30 rounded-xl border border-transparent active:border-pink-900/40 transition-all touch-target"
+                        aria-label={`Remove ${food.name}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -141,32 +177,46 @@ export default function ScanResults({
         )}
       </div>
 
-      {/* 2. Personalized Health Assessment & Alerts */}
+      {/* Health feedback */}
       {items.length > 0 && (
-        <div className="flex flex-col gap-4">
-          {/* Health Status Banner */}
-          <div className={`p-4 rounded-xl border flex items-start gap-3.5 ${getStatusBanner(feedback.status)}`}>
-            <div className="shrink-0 mt-0.5">{getStatusIcon(feedback.status)}</div>
-            <div>
-              <h4 className="text-sm font-bold uppercase tracking-wider">Health Status Alert</h4>
-              <p className="text-sm mt-1 text-zinc-200 font-medium">{feedback.message}</p>
+        <div className="flex flex-col gap-3 sm:gap-4">
+          <div
+            className={`p-4 sm:p-5 rounded-2xl border flex items-start gap-3 ${getStatusBanner(feedback.status)}`}
+          >
+            <div className="shrink-0 mt-0.5">
+              {getStatusIcon(feedback.status)}
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-xs font-bold uppercase tracking-wider opacity-80">
+                Health Assessment
+              </h3>
+              <p className="text-sm sm:text-base mt-1 text-zinc-100 font-medium leading-relaxed">
+                {feedback.message}
+              </p>
             </div>
           </div>
 
-          {/* Actionable Dietitians Tips */}
-          <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-5 flex flex-col gap-4">
-            <h4 className="text-sm font-bold text-zinc-200 flex items-center gap-1.5 border-b border-zinc-800/60 pb-2">
-              <Lightbulb className="w-4 h-4 text-yellow-400 animate-pulse" />
-              Tailored Dietary Insights
-            </h4>
-            
+          <div className="card-surface p-4 sm:p-5 flex flex-col gap-3">
+            <h3 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+              <Lightbulb className="w-4 h-4 text-yellow-400" />
+              Dietary Insights
+            </h3>
+
             {feedback.tips.length === 0 ? (
-              <p className="text-xs text-zinc-500">No warnings or suggestions for this plate selection.</p>
+              <p className="text-sm text-zinc-500">
+                No additional suggestions for this plate.
+              </p>
             ) : (
-              <ul className="flex flex-col gap-2.5 list-disc pl-4 text-xs text-zinc-300">
+              <ul className="flex flex-col gap-3">
                 {feedback.tips.map((tip, idx) => (
-                  <li key={idx} className="leading-relaxed">
-                    {tip}
+                  <li
+                    key={idx}
+                    className="flex gap-2.5 text-sm text-zinc-300 leading-relaxed"
+                  >
+                    <span className="shrink-0 w-5 h-5 rounded-full bg-zinc-800 text-zinc-500 text-[10px] font-bold flex items-center justify-center mt-0.5">
+                      {idx + 1}
+                    </span>
+                    <span>{tip}</span>
                   </li>
                 ))}
               </ul>
@@ -174,6 +224,6 @@ export default function ScanResults({
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }
