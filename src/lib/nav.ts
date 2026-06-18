@@ -4,25 +4,24 @@ import {
   UtensilsCrossed,
   Activity,
   PlusCircle,
-  Info,
   Shield,
   FileText,
   LucideIcon,
 } from "lucide-react";
 
-export type NavSectionId = "home" | "scan" | "results" | "profile";
+export type NavPath = "/" | "/scan" | "/results" | "/profile" | "/privacy" | "/terms";
 
 export interface NavSection {
-  id: NavSectionId;
+  path: NavPath;
   label: string;
   icon: LucideIcon;
 }
 
 export const PRIMARY_NAV: NavSection[] = [
-  { id: "home", label: "Home", icon: Home },
-  { id: "scan", label: "Scan", icon: Camera },
-  { id: "results", label: "Plate", icon: UtensilsCrossed },
-  { id: "profile", label: "Profile", icon: Activity },
+  { path: "/", label: "Home", icon: Home },
+  { path: "/scan", label: "Scan", icon: Camera },
+  { path: "/results", label: "Plate", icon: UtensilsCrossed },
+  { path: "/profile", label: "Profile", icon: Activity },
 ];
 
 export interface DrawerLink {
@@ -30,7 +29,7 @@ export interface DrawerLink {
   label: string;
   description?: string;
   icon: LucideIcon;
-  sectionId?: NavSectionId | "about";
+  path?: NavPath;
   action?: "manual-add";
 }
 
@@ -38,64 +37,54 @@ export const DRAWER_LINKS: DrawerLink[] = [
   {
     id: "home",
     label: "Home",
-    description: "Overview & stats",
     icon: Home,
-    sectionId: "home",
+    path: "/",
   },
   {
     id: "scan",
-    label: "Scan Plate",
-    description: "Camera or upload",
+    label: "Scan plate",
     icon: Camera,
-    sectionId: "scan",
+    path: "/scan",
   },
   {
     id: "results",
-    label: "My Plate",
-    description: "Nutrition & items",
+    label: "My plate",
     icon: UtensilsCrossed,
-    sectionId: "results",
+    path: "/results",
   },
   {
     id: "profile",
-    label: "Health Profile",
-    description: "Diabetic, child, general",
+    label: "Health profile",
     icon: Activity,
-    sectionId: "profile",
+    path: "/profile",
   },
   {
     id: "manual",
-    label: "Add Item Manually",
-    description: "Quick-add for testing",
+    label: "Add item manually",
     icon: PlusCircle,
     action: "manual-add",
-  },
-  {
-    id: "about",
-    label: "How It Works",
-    description: "AI pipeline & architecture",
-    icon: Info,
-    sectionId: "about",
   },
 ];
 
 export const DRAWER_LEGAL: DrawerLink[] = [
   {
     id: "privacy",
-    label: "Privacy Policy",
+    label: "Privacy",
     icon: Shield,
+    path: "/privacy",
   },
   {
     id: "terms",
-    label: "Terms of Service",
+    label: "Terms",
     icon: FileText,
+    path: "/terms",
   },
 ];
 
-export const ALL_SECTION_IDS: (NavSectionId | "about")[] = [
-  "home",
-  "profile",
-  "scan",
-  "results",
-  "about",
+export const ALL_PATHS: NavPath[] = [
+  "/",
+  "/profile",
+  "/scan",
+  "/results",
 ];
+

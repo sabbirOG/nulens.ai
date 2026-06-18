@@ -4,8 +4,8 @@
   "description": "Intelligent dietary assessment for Bangladeshi cuisine",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#09090b",
-  "theme_color": "#09090b",
+  "background_color": "#f7f6f3",
+  "theme_color": "#f7f6f3",
   "orientation": "portrait-primary",
   "icons": [
     {

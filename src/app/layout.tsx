@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "NuLens AI",
   },
   formatDetection: {
@@ -31,11 +31,11 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
-    { media: "(prefers-color-scheme: light)", color: "#09090b" },
-  ],
+  themeColor: "#f7f6f3",
 };
+
+import { AppContextProvider } from "@/context/AppContext";
+import AppShell from "@/components/AppShell";
 
 export default function RootLayout({
   children,
@@ -45,10 +45,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100">
-        {children}
+      <body className="bg-background text-foreground">
+        <AppContextProvider>
+          <AppShell>{children}</AppShell>
+        </AppContextProvider>
       </body>
     </html>
   );
