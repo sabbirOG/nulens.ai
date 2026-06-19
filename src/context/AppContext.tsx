@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { UserProfileType, FoodItem, BANGLADESHI_FOOD_DB } from "@/lib/food-db";
+import { UserProfileType, FoodItem, BANGLADESHI_FOOD_DB, getHealthFeedback } from "@/lib/food-db";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export interface ScannedItem {
   foodId: string;
@@ -25,7 +26,7 @@ interface AppContextType {
   handleScanComplete: (items: ScannedItem[]) => void;
   handleManualAdd: (foodId: string) => void;
   clearPlate: () => void;
-  // New States and Handlers
+  // States and Handlers
   loggedMeals: LoggedMeal[];
   customFoods: Record<string, FoodItem>;
   mergedFoodDb: Record<string, FoodItem>;
@@ -33,6 +34,9 @@ interface AppContextType {
   handleDeleteLoggedMeal: (mealId: string) => void;
   handleCreateCustomFood: (food: FoodItem) => void;
   handleOptimizePortions: (optimizedItems: ScannedItem[]) => void;
+  // Supabase states
+  userId: string | null;
+  supabaseActive: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -42,46 +46,136 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
   const [loggedMeals, setLoggedMeals] = useState<LoggedMeal[]>([]);
   const [customFoods, setCustomFoods] = useState<Record<string, FoodItem>>({});
+  const [dbFoods, setDbFoods] = useState<Record<string, FoodItem>>({});
+  const [userId, setUserId] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load state from localStorage on mount
+  const supabaseActive = isSupabaseConfigured();
+
+  // Load state and authenticate on mount
   useEffect(() => {
-    try {
-      const savedProfile = localStorage.getItem("nulens_profile");
-      if (savedProfile) {
-        setProfileState(savedProfile as UserProfileType);
-      }
-      const savedItems = localStorage.getItem("nulens_scanned_items");
-      if (savedItems) {
-        setScannedItems(JSON.parse(savedItems));
-      }
-      const savedMeals = localStorage.getItem("nulens_logged_meals");
-      if (savedMeals) {
-        setLoggedMeals(JSON.parse(savedMeals));
-      }
-      const savedCustomFoods = localStorage.getItem("nulens_custom_foods");
-      if (savedCustomFoods) {
-        setCustomFoods(JSON.parse(savedCustomFoods));
-      }
-    } catch (e) {
-      console.error("Failed to load state from localStorage:", e);
-    }
-    setIsLoaded(true);
-  }, []);
+    async function initializeApp() {
+      if (supabaseActive) {
+        try {
+          // 1. Authenticate user anonymously
+          let currentUserId: string | null = null;
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session?.user) {
+            currentUserId = session.user.id;
+          } else {
+            const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously();
+            if (signInError) throw signInError;
+            currentUserId = signInData.user?.id || null;
+          }
+          
+          setUserId(currentUserId);
 
-  // Save profile to localStorage when it changes
-  const setProfile = (newProfile: UserProfileType) => {
-    setProfileState(newProfile);
-    if (typeof window !== "undefined") {
+          if (currentUserId) {
+            // 2. Fetch User Profile
+            const { data: profileData } = await supabase
+              .from("profiles")
+              .select("health_goal")
+              .eq("user_id", currentUserId)
+              .maybeSingle();
+
+            if (profileData) {
+              setProfileState(profileData.health_goal as UserProfileType);
+            } else {
+              // Create default profile in Supabase
+              await supabase.from("profiles").insert({
+                user_id: currentUserId,
+                health_goal: "general",
+              });
+            }
+
+            // 3. Fetch Scans / Meal Logs history
+            const { data: scansData } = await supabase
+              .from("scans")
+              .select("*")
+              .eq("user_id", currentUserId)
+              .order("created_at", { ascending: true });
+
+            if (scansData) {
+              const mappedMeals: LoggedMeal[] = scansData.map((row) => ({
+                id: row.id,
+                date: row.date,
+                type: row.meal_type as any,
+                items: row.detected_items as ScannedItem[],
+              }));
+              setLoggedMeals(mappedMeals);
+            }
+
+            // 4. Fetch Food Database (both system defaults and custom items)
+            const { data: foodsData } = await supabase
+              .from("food_nutrition")
+              .select("*");
+
+            if (foodsData) {
+              const mappedFoods: Record<string, FoodItem> = {};
+              const systemCustom: Record<string, FoodItem> = {};
+
+              foodsData.forEach((row) => {
+                const item: FoodItem = {
+                  id: row.id,
+                  name: row.item_name,
+                  banglaName: row.bangla_name,
+                  calories: Number(row.calories),
+                  carbs: Number(row.carbs),
+                  protein: Number(row.protein),
+                  fat: Number(row.fat),
+                  servingSize: row.serving_size,
+                  glycemicIndex: row.gi_index,
+                  category: row.category as any,
+                  description: row.description || "",
+                };
+                mappedFoods[row.id] = item;
+                if (row.user_id === currentUserId) {
+                  systemCustom[row.id] = item;
+                }
+              });
+
+              setDbFoods(mappedFoods);
+              setCustomFoods(systemCustom);
+            }
+          }
+        } catch (e) {
+          console.error("Supabase initialization failed, falling back to localStorage:", e);
+          loadLocalStorageFallback();
+        }
+      } else {
+        loadLocalStorageFallback();
+      }
+      setIsLoaded(true);
+    }
+
+    function loadLocalStorageFallback() {
       try {
-        localStorage.setItem("nulens_profile", newProfile);
+        const savedProfile = localStorage.getItem("nulens_profile");
+        if (savedProfile) {
+          setProfileState(savedProfile as UserProfileType);
+        }
+        const savedItems = localStorage.getItem("nulens_scanned_items");
+        if (savedItems) {
+          setScannedItems(JSON.parse(savedItems));
+        }
+        const savedMeals = localStorage.getItem("nulens_logged_meals");
+        if (savedMeals) {
+          setLoggedMeals(JSON.parse(savedMeals));
+        }
+        const savedCustomFoods = localStorage.getItem("nulens_custom_foods");
+        if (savedCustomFoods) {
+          setCustomFoods(JSON.parse(savedCustomFoods));
+        }
       } catch (e) {
-        console.error("Failed to save profile to localStorage:", e);
+        console.error("Failed to load state from localStorage:", e);
       }
     }
-  };
 
-  // Save scannedItems to localStorage when they change
+    initializeApp();
+  }, [supabaseActive]);
+
+  // Synchronize active plate to localStorage locally
   useEffect(() => {
     if (!isLoaded) return;
     try {
@@ -91,25 +185,23 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     }
   }, [scannedItems, isLoaded]);
 
-  // Save loggedMeals to localStorage when they change
-  useEffect(() => {
-    if (!isLoaded) return;
+  // Sync profile when it changes
+  const setProfile = async (newProfile: UserProfileType) => {
+    setProfileState(newProfile);
     try {
-      localStorage.setItem("nulens_logged_meals", JSON.stringify(loggedMeals));
+      localStorage.setItem("nulens_profile", newProfile);
+      if (supabaseActive && userId) {
+        await supabase
+          .from("profiles")
+          .upsert(
+            { user_id: userId, health_goal: newProfile },
+            { onConflict: "user_id" }
+          );
+      }
     } catch (e) {
-      console.error("Failed to save logged meals to localStorage:", e);
+      console.error("Failed to sync profile change:", e);
     }
-  }, [loggedMeals, isLoaded]);
-
-  // Save customFoods to localStorage when they change
-  useEffect(() => {
-    if (!isLoaded) return;
-    try {
-      localStorage.setItem("nulens_custom_foods", JSON.stringify(customFoods));
-    } catch (e) {
-      console.error("Failed to save custom foods to localStorage:", e);
-    }
-  }, [customFoods, isLoaded]);
+  };
 
   const handleUpdateQuantity = (foodId: string, delta: number) => {
     setScannedItems((prev) =>
@@ -147,34 +239,150 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     setScannedItems([]);
   };
 
-  const handleLogMeal = (type: "breakfast" | "lunch" | "dinner" | "snack") => {
+  const handleLogMeal = async (type: "breakfast" | "lunch" | "dinner" | "snack") => {
     if (scannedItems.length === 0) return;
-    const newMeal: LoggedMeal = {
-      id: Math.random().toString(36).substring(2, 9),
-      date: new Date().toLocaleDateString("en-CA"), // YYYY-MM-DD
+
+    const dateStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
+    const feedback = getHealthFeedback(scannedItems, profile, mergedFoodDb);
+
+    const tempId = Math.random().toString(36).substring(2, 9);
+    const newMealLocal: LoggedMeal = {
+      id: tempId,
+      date: dateStr,
       type,
       items: [...scannedItems],
     };
-    setLoggedMeals((prev) => [...prev, newMeal]);
+
+    // Update state locally first
+    setLoggedMeals((prev) => [...prev, newMealLocal]);
+
+    if (supabaseActive && userId) {
+      try {
+        const { data, error } = await supabase
+          .from("scans")
+          .insert({
+            user_id: userId,
+            image_url: null,
+            detected_items: scannedItems,
+            health_feedback: feedback,
+            meal_type: type,
+            date: dateStr,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Replace local temp ID with real DB ID
+        if (data) {
+          setLoggedMeals((prev) =>
+            prev.map((m) =>
+              m.id === tempId ? { ...m, id: data.id } : m
+            )
+          );
+        }
+      } catch (e) {
+        console.error("Failed to log scan to Supabase:", e);
+      }
+    } else {
+      // Sync fallback to localStorage
+      try {
+        const savedMeals = localStorage.getItem("nulens_logged_meals");
+        const parsed = savedMeals ? JSON.parse(savedMeals) : [];
+        localStorage.setItem(
+          "nulens_logged_meals",
+          JSON.stringify([...parsed, newMealLocal])
+        );
+      } catch (e) {
+        console.error("LocalStorage save failed:", e);
+      }
+    }
+
     clearPlate();
   };
 
-  const handleDeleteLoggedMeal = (mealId: string) => {
+  const handleDeleteLoggedMeal = async (mealId: string) => {
     setLoggedMeals((prev) => prev.filter((m) => m.id !== mealId));
+
+    if (supabaseActive && userId) {
+      try {
+        const { error } = await supabase.from("scans").delete().eq("id", mealId);
+        if (error) throw error;
+      } catch (e) {
+        console.error("Failed to delete scan from Supabase:", e);
+      }
+    } else {
+      // Fallback
+      try {
+        const savedMeals = localStorage.getItem("nulens_logged_meals");
+        if (savedMeals) {
+          const parsed = JSON.parse(savedMeals) as LoggedMeal[];
+          localStorage.setItem(
+            "nulens_logged_meals",
+            JSON.stringify(parsed.filter((m) => m.id !== mealId))
+          );
+        }
+      } catch (e) {
+        console.error("LocalStorage delete failed:", e);
+      }
+    }
   };
 
-  const handleCreateCustomFood = (food: FoodItem) => {
+  const handleCreateCustomFood = async (food: FoodItem) => {
+    // Add to local state immediately
     setCustomFoods((prev) => ({
       ...prev,
       [food.id]: food,
     }));
+    setDbFoods((prev) => ({
+      ...prev,
+      [food.id]: food,
+    }));
+
+    if (supabaseActive && userId) {
+      try {
+        const { error } = await supabase.from("food_nutrition").insert({
+          id: food.id,
+          item_name: food.name,
+          bangla_name: food.banglaName,
+          calories: food.calories,
+          carbs: food.carbs,
+          protein: food.protein,
+          fat: food.fat,
+          serving_size: food.servingSize,
+          gi_index: food.glycemicIndex,
+          category: food.category,
+          description: food.description,
+          user_id: userId,
+        });
+        if (error) throw error;
+      } catch (e) {
+        console.error("Failed to save custom food to Supabase:", e);
+      }
+    } else {
+      // Fallback
+      try {
+        const savedCustom = localStorage.getItem("nulens_custom_foods");
+        const parsed = savedCustom ? JSON.parse(savedCustom) : {};
+        localStorage.setItem(
+          "nulens_custom_foods",
+          JSON.stringify({ ...parsed, [food.id]: food })
+        );
+      } catch (e) {
+        console.error("LocalStorage custom food save failed:", e);
+      }
+    }
   };
 
   const handleOptimizePortions = (optimizedItems: ScannedItem[]) => {
     setScannedItems(optimizedItems);
   };
 
-  const mergedFoodDb = { ...BANGLADESHI_FOOD_DB, ...customFoods };
+  // Resolve DB foods or fallback to static file if not synced yet/offline
+  const mergedFoodDb =
+    Object.keys(dbFoods).length > 0
+      ? dbFoods
+      : { ...BANGLADESHI_FOOD_DB, ...customFoods };
 
   return (
     <AppContext.Provider
@@ -195,6 +403,8 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
         handleDeleteLoggedMeal,
         handleCreateCustomFood,
         handleOptimizePortions,
+        userId,
+        supabaseActive,
       }}
     >
       {children}
