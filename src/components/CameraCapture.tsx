@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Camera, Upload, AlertCircle, RefreshCw, Layers, CheckCircle2, Play } from "lucide-react";
 import { BANGLADESHI_FOOD_DB } from "@/lib/food-db";
+import { useApp } from "@/context/AppContext";
 
 interface CameraCaptureProps {
   onScanComplete: (
@@ -20,6 +21,7 @@ interface BoundingBox {
 }
 
 export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
+  const { setActivePlateImage } = useApp();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -164,6 +166,7 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
   };
 
   const handleConfirmScan = () => {
+    setActivePlateImage(capturedImage);
     onScanComplete(detectedItems);
   };
 
@@ -172,6 +175,7 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
     setScanCompleted(false);
     setDetectedItems([]);
     setDetectedBoxes([]);
+    setActivePlateImage(null);
     startCamera();
   };
 

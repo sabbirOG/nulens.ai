@@ -14,6 +14,7 @@ export interface LoggedMeal {
   date: string; // YYYY-MM-DD
   type: "breakfast" | "lunch" | "dinner" | "snack";
   items: ScannedItem[];
+  imageUrl?: string;
 }
 
 interface AppContextType {
@@ -37,9 +38,17 @@ interface AppContextType {
   // Supabase states
   userId: string | null;
   supabaseActive: boolean;
+  activePlateImage: string | null;
+  setActivePlateImage: (img: string | null) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
+
+// Helper to convert base64 data URI to Blob
+async function base64ToBlob(base64Data: string): Promise<Blob> {
+  const res = await fetch(base64Data);
+  return res.blob();
+}
 
 export function AppContextProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfileState] = useState<UserProfileType>("general");
@@ -48,6 +57,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   const [customFoods, setCustomFoods] = useState<Record<string, FoodItem>>({});
   const [dbFoods, setDbFoods] = useState<Record<string, FoodItem>>({});
   const [userId, setUserId] = useState<string | null>(null);
+  const [activePlateImage, setActivePlateImage] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const supabaseActive = isSupabaseConfigured();
@@ -102,6 +112,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
                 date: row.date,
                 type: row.meal_type as any,
                 items: row.detected_items as ScannedItem[],
+                imageUrl: row.image_url || undefined,
               }));
               setLoggedMeals(mappedMeals);
             }
@@ -237,6 +248,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
 
   const clearPlate = () => {
     setScannedItems([]);
+    setActivePlateImage(null);
   };
 
   const handleLogMeal = async (type: "breakfast" | "lunch" | "dinner" | "snack") => {
@@ -251,10 +263,38 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
       date: dateStr,
       type,
       items: [...scannedItems],
+      imageUrl: activePlateImage || undefined,
     };
 
-    // Update state locally first
+    // Update state locally first (instant UI update)
     setLoggedMeals((prev) => [...prev, newMealLocal]);
+
+    let uploadedUrl: string | null = null;
+
+    if (activePlateImage && supabaseActive && userId) {
+      try {
+        const blob = await base64ToBlob(activePlateImage);
+        const fileName = `${userId}/${Date.now()}.webp`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("meal-photos")
+          .upload(fileName, blob, {
+            contentType: "image/webp",
+            cacheControl: "3600",
+          });
+
+        if (uploadError) throw uploadError;
+
+        if (uploadData) {
+          const { data: urlData } = supabase.storage
+            .from("meal-photos")
+            .getPublicUrl(fileName);
+          uploadedUrl = urlData?.publicUrl || null;
+        }
+      } catch (e) {
+        console.error("Failed to upload image to Supabase Storage:", e);
+      }
+    }
 
     if (supabaseActive && userId) {
       try {
@@ -262,7 +302,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
           .from("scans")
           .insert({
             user_id: userId,
-            image_url: null,
+            image_url: uploadedUrl,
             detected_items: scannedItems,
             health_feedback: feedback,
             meal_type: type,
@@ -273,11 +313,11 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
 
         if (error) throw error;
 
-        // Replace local temp ID with real DB ID
+        // Replace local temp ID and local base64 with real DB values
         if (data) {
           setLoggedMeals((prev) =>
             prev.map((m) =>
-              m.id === tempId ? { ...m, id: data.id } : m
+              m.id === tempId ? { ...m, id: data.id, imageUrl: data.image_url || m.imageUrl } : m
             )
           );
         }
@@ -302,12 +342,23 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   };
 
   const handleDeleteLoggedMeal = async (mealId: string) => {
+    const mealToDelete = loggedMeals.find((m) => m.id === mealId);
     setLoggedMeals((prev) => prev.filter((m) => m.id !== mealId));
 
     if (supabaseActive && userId) {
       try {
+        // Delete scan entry
         const { error } = await supabase.from("scans").delete().eq("id", mealId);
         if (error) throw error;
+
+        // If it has an uploaded image URL, we can delete the file from Storage too
+        if (mealToDelete?.imageUrl && mealToDelete.imageUrl.includes(userId)) {
+          const pathParts = mealToDelete.imageUrl.split("meal-photos/");
+          if (pathParts.length > 1) {
+            const filePath = pathParts[1];
+            await supabase.storage.from("meal-photos").remove([filePath]);
+          }
+        }
       } catch (e) {
         console.error("Failed to delete scan from Supabase:", e);
       }
@@ -405,6 +456,8 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
         handleOptimizePortions,
         userId,
         supabaseActive,
+        activePlateImage,
+        setActivePlateImage,
       }}
     >
       {children}

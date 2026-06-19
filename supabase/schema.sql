@@ -143,3 +143,22 @@ VALUES
 ('lal_bhat', 'Lal Bhat (Red Rice)', 'লাল চালের ভাত', 190, 40, 4.8, 0.6, '1 cup cooked (150g)', 50, 'staple', 'Traditional unpolished Bangladeshi red rice. High in fiber, low-GI alternative to Sada Bhat.', NULL),
 ('rui_mach', 'Rui Macher Jhol (Rui Fish Curry)', 'রুই মাছের ঝোল', 180, 3.5, 18.5, 10.0, '1 piece with gravy (140g)', 5, 'protein', 'Rui (Rohu fish) cooked in a light cumin-onion gravy with potatoes. Great source of protein and healthy fats.', NULL)
 ON CONFLICT (id) DO NOTHING;
+
+-- ==========================================
+-- 4. Create Storage Bucket for Meal Photos
+-- ==========================================
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('meal-photos', 'meal-photos', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Enable Anonymous uploads & public reads for the bucket
+DROP POLICY IF EXISTS "Public read access to meal photos" ON storage.objects;
+CREATE POLICY "Public read access to meal photos"
+    ON storage.objects FOR SELECT 
+    USING (bucket_id = 'meal-photos');
+
+DROP POLICY IF EXISTS "Anonymous upload to meal-photos" ON storage.objects;
+CREATE POLICY "Anonymous upload to meal-photos"
+    ON storage.objects FOR INSERT 
+    WITH CHECK (bucket_id = 'meal-photos');
+

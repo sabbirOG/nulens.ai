@@ -293,47 +293,62 @@ export default function Home() {
               return (
                 <div
                   key={meal.id}
-                  className="card-surface p-4 bg-surface flex flex-col gap-3 relative animate-fade-up border border-border"
+                  className="card-surface bg-surface flex flex-col sm:flex-row overflow-hidden border border-border animate-fade-up"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base select-none">{getMealEmoji(meal.type)}</span>
-                      <span className="text-sm font-semibold capitalize text-foreground">
-                        {meal.type}
-                      </span>
+                  {meal.imageUrl && (
+                    <div className="w-full sm:w-28 sm:h-auto aspect-[4/3] sm:aspect-square relative shrink-0 bg-stone-900 border-b sm:border-b-0 sm:border-r border-border select-none">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={meal.imageUrl}
+                        alt={`${meal.type} cover`}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <button
-                      onClick={() => handleDeleteLoggedMeal(meal.id)}
-                      className="p-1.5 rounded-lg text-muted hover:text-red-600 active:bg-surface-muted transition-colors cursor-pointer touch-target"
-                      aria-label="Delete logged meal"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  )}
 
-                  <div className="space-y-1.5">
-                    {meal.items.map((item, idx) => {
-                      const food = mergedFoodDb[item.foodId];
-                      if (!food) return null;
-                      return (
-                        <div key={idx} className="flex justify-between text-xs text-muted">
-                          <span>
-                            {food.name} <span className="text-[10px] text-muted/80">({item.quantity}x)</span>
-                          </span>
-                          <span className="tabular-nums">
-                            {Math.round(food.calories * item.quantity)} kcal
+                  <div className="flex-1 p-4 flex flex-col justify-between gap-3 relative">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base select-none">{getMealEmoji(meal.type)}</span>
+                          <span className="text-sm font-semibold capitalize text-foreground">
+                            {meal.type}
                           </span>
                         </div>
-                      );
-                    })}
-                  </div>
+                        <button
+                          onClick={() => handleDeleteLoggedMeal(meal.id)}
+                          className="p-1.5 rounded-lg text-muted hover:text-red-600 active:bg-surface-muted transition-colors cursor-pointer touch-target"
+                          aria-label="Delete logged meal"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
 
-                  <div className="pt-2 border-t border-border flex justify-between items-center text-[10px] font-semibold text-muted/95 uppercase tracking-wider">
-                    <span>Meal Total</span>
-                    <span className="text-accent font-bold tabular-nums">
-                      {Math.round(mealCal)} kcal | C: {Math.round(mealCarb)}g | P:{" "}
-                      {Math.round(mealProtein)}g | F: {Math.round(mealFat)}g
-                    </span>
+                      <div className="space-y-1.5">
+                        {meal.items.map((item, idx) => {
+                          const food = mergedFoodDb[item.foodId];
+                          if (!food) return null;
+                          return (
+                            <div key={idx} className="flex justify-between text-xs text-muted">
+                              <span>
+                                {food.name} <span className="text-[10px] text-muted/80">({item.quantity}x)</span>
+                              </span>
+                              <span className="tabular-nums">
+                                {Math.round(food.calories * item.quantity)} kcal
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-border flex justify-between items-center text-[10px] font-semibold text-muted/95 uppercase tracking-wider">
+                      <span>Meal Total</span>
+                      <span className="text-accent font-bold tabular-nums">
+                        {Math.round(mealCal)} kcal | C: {Math.round(mealCarb)}g | P:{" "}
+                        {Math.round(mealProtein)}g | F: {Math.round(mealFat)}g
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
