@@ -2,10 +2,11 @@
 
 import React from "react";
 import {
-  BANGLADESHI_FOOD_DB,
   UserProfileType,
   getHealthFeedback,
+  getOptimizedPlate,
 } from "@/lib/food-db";
+import { useApp } from "@/context/AppContext";
 import {
   Plus,
   Minus,
@@ -29,7 +30,8 @@ export default function ScanResults({
   onRemoveItem,
   profileType,
 }: ScanResultsProps) {
-  const feedback = getHealthFeedback(items, profileType);
+  const { mergedFoodDb, handleOptimizePortions } = useApp();
+  const feedback = getHealthFeedback(items, profileType, mergedFoodDb);
 
   const getGIBadge = (gi: number) => {
     if (gi === 0) return { label: "N/A", style: "bg-stone-100 text-stone-500" };
@@ -58,6 +60,11 @@ export default function ScanResults({
     }
   };
 
+  const handleOptimizeClick = () => {
+    const optimized = getOptimizedPlate(items, profileType, mergedFoodDb);
+    handleOptimizePortions(optimized);
+  };
+
   if (items.length === 0) {
     return (
       <section id="results" className="animate-fade-up">
@@ -81,7 +88,7 @@ export default function ScanResults({
       <div className={`p-4 rounded-xl border ${status.banner}`}>
         <div className="flex gap-3">
           {status.icon}
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-medium leading-relaxed">
               {feedback.message}
             </p>
@@ -94,6 +101,14 @@ export default function ScanResults({
                 ))}
               </ul>
             )}
+            {feedback.status !== "excellent" && (
+              <button
+                onClick={handleOptimizeClick}
+                className="mt-3.5 px-3.5 py-2 rounded-xl bg-white border border-border text-xs font-bold text-accent hover:bg-stone-50 flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95 duration-100"
+              >
+                ✨ Optimize Portions to Fit Goals
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -101,12 +116,12 @@ export default function ScanResults({
       {/* Food items */}
       <div className="card-surface p-4 sm:p-5">
         <h2 className="section-title mb-4">
-          Your plate ({items.length} items)
+          Your plate ({items.length} {items.length === 1 ? "item" : "items"})
         </h2>
 
         <div className="flex flex-col gap-2">
           {items.map((item) => {
-            const food = BANGLADESHI_FOOD_DB[item.foodId];
+            const food = mergedFoodDb[item.foodId];
             if (!food) return null;
             const giBadge = getGIBadge(food.glycemicIndex);
 
@@ -132,7 +147,7 @@ export default function ScanResults({
                     <button
                       onClick={() => onUpdateQuantity(item.foodId, -0.5)}
                       disabled={item.quantity <= 0.5}
-                      className="p-2 text-muted active:text-foreground disabled:opacity-30 touch-target"
+                      className="p-2 text-muted active:text-foreground disabled:opacity-30 touch-target cursor-pointer"
                       aria-label="Decrease portion"
                     >
                       <Minus className="w-3.5 h-3.5" />
@@ -142,7 +157,7 @@ export default function ScanResults({
                     </span>
                     <button
                       onClick={() => onUpdateQuantity(item.foodId, 0.5)}
-                      className="p-2 text-muted active:text-foreground touch-target"
+                      className="p-2 text-muted active:text-foreground touch-target cursor-pointer"
                       aria-label="Increase portion"
                     >
                       <Plus className="w-3.5 h-3.5" />
@@ -150,7 +165,7 @@ export default function ScanResults({
                   </div>
                   <button
                     onClick={() => onRemoveItem(item.foodId)}
-                    className="p-2 text-muted active:text-red-600 touch-target"
+                    className="p-2 text-muted hover:text-red-600 active:text-red-700 touch-target cursor-pointer"
                     aria-label={`Remove ${food.name}`}
                   >
                     <Trash2 className="w-4 h-4" />

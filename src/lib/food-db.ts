@@ -129,6 +129,97 @@ export const BANGLADESHI_FOOD_DB: Record<string, FoodItem> = {
     glycemicIndex: 82, // Extremely High GI
     category: "sweet",
     description: "Soft chhana cheese balls soaked in sugary cardamom syrup. Highly glycemic."
+  },
+  khichuri: {
+    id: "khichuri",
+    name: "Bhuna Khichuri (Spiced Rice & Lentils)",
+    banglaName: "ভুনা খিচুড়ি",
+    calories: 320,
+    carbs: 55,
+    protein: 9.5,
+    fat: 8.0,
+    servingSize: "1 plate (200g)",
+    glycemicIndex: 55, // Medium GI
+    category: "staple",
+    description: "Yellow rice cooked with lentils, warm spices, and ghee. A comforting, fiber-rich staple."
+  },
+  luchi: {
+    id: "luchi",
+    name: "Luchi (Deep-fried Puffed Bread)",
+    banglaName: "লুচি",
+    calories: 210,
+    carbs: 24,
+    protein: 3.2,
+    fat: 12.0,
+    servingSize: "2 pieces (60g)",
+    glycemicIndex: 75, // High GI
+    category: "staple",
+    description: "Deep-fried puffed flatbread made of refined flour. High calorie and glycemic load."
+  },
+  haleem: {
+    id: "haleem",
+    name: "Haleem (Spiced Lentil & Beef Stew)",
+    banglaName: "হালিম",
+    calories: 260,
+    carbs: 22,
+    protein: 18.0,
+    fat: 11.0,
+    servingSize: "1 bowl (180g)",
+    glycemicIndex: 42, // Low-Medium GI
+    category: "protein",
+    description: "Slow-cooked stew of mixed lentils, barley, wheat, and beef or mutton. High in protein and fiber."
+  },
+  fuchka: {
+    id: "fuchka",
+    name: "Fuchka (Spiced Chickpea Street Snack)",
+    banglaName: "ফুচকা",
+    calories: 160,
+    carbs: 24,
+    protein: 2.8,
+    fat: 6.0,
+    servingSize: "5 pieces (75g)",
+    glycemicIndex: 68, // Medium-High GI
+    category: "snack",
+    description: "Crispy hollow puris filled with spiced potato-chickpea mash, served with sour tamarind water."
+  },
+  aloo_bhorta: {
+    id: "aloo_bhorta",
+    name: "Aloo Bhorta (Mashed Potatoes)",
+    banglaName: "আলু ভর্তা",
+    calories: 90,
+    carbs: 16,
+    protein: 1.5,
+    fat: 2.5,
+    servingSize: "1/2 cup (80g)",
+    glycemicIndex: 80, // High GI
+    category: "vegetable",
+    description: "Mashed potatoes seasoned with mustard oil, red chilies, onions, and coriander. High glycemic index."
+  },
+  lal_bhat: {
+    id: "lal_bhat",
+    name: "Lal Bhat (Red Rice)",
+    banglaName: "লাল চালের ভাত",
+    calories: 190,
+    carbs: 40,
+    protein: 4.8,
+    fat: 0.6,
+    servingSize: "1 cup cooked (150g)",
+    glycemicIndex: 50, // Low-Medium GI
+    category: "staple",
+    description: "Traditional unpolished Bangladeshi red rice. High in fiber, low-GI alternative to Sada Bhat."
+  },
+  rui_mach: {
+    id: "rui_mach",
+    name: "Rui Macher Jhol (Rui Fish Curry)",
+    banglaName: "রুই মাছের ঝোল",
+    calories: 180,
+    carbs: 3.5,
+    protein: 18.5,
+    fat: 10.0,
+    servingSize: "1 piece with gravy (140g)",
+    glycemicIndex: 5,
+    category: "protein",
+    description: "Rui (Rohu fish) cooked in a light cumin-onion gravy with potatoes. Great source of protein and healthy fats."
   }
 };
 
@@ -174,7 +265,8 @@ export interface HealthFeedback {
 
 export function getHealthFeedback(
   items: Array<{ foodId: string; quantity: number }>,
-  profileType: UserProfileType
+  profileType: UserProfileType,
+  foodDb: Record<string, FoodItem> = BANGLADESHI_FOOD_DB
 ): HealthFeedback {
   let totalCalories = 0;
   let totalCarbs = 0;
@@ -186,7 +278,7 @@ export function getHealthFeedback(
   let hasVegetable = false;
 
   items.forEach(item => {
-    const food = BANGLADESHI_FOOD_DB[item.foodId];
+    const food = foodDb[item.foodId];
     if (food) {
       totalCalories += food.calories * item.quantity;
       totalCarbs += food.carbs * item.quantity;
@@ -223,7 +315,7 @@ export function getHealthFeedback(
     if (highGICount > 0) {
       status = 'warning';
       message = "High Glycemic Load detected. Your blood sugar could spike.";
-      tips.push("Reduce the portion of Plain Rice (Sada Bhat) or replace it with Lal Bhat (Brown Rice) or Roti.");
+      tips.push("Reduce the portion of Plain Rice (Sada Bhat) or replace it with Lal Bhat (Red Rice) or Roti.");
     }
     
     if (totalCarbs > limits.carbLimit / 3) { // more than 1/3 of daily carbs in one meal
@@ -258,7 +350,7 @@ export function getHealthFeedback(
 
     // Check sweets / deep fried
     const sweetCount = items.filter(i => {
-      const f = BANGLADESHI_FOOD_DB[i.foodId];
+      const f = foodDb[i.foodId];
       return f && (f.category === 'sweet' || f.category === 'snack');
     }).length;
 
@@ -294,4 +386,102 @@ export function getHealthFeedback(
   }
 
   return { status, message, tips };
+}
+
+export function getOptimizedPlate(
+  items: Array<{ foodId: string; quantity: number }>,
+  profileType: UserProfileType,
+  foodDb: Record<string, FoodItem>
+): Array<{ foodId: string; quantity: number }> {
+  const rules = PROFILE_RECOMMENDATIONS[profileType];
+  let currentCarbs = 0;
+  let currentProtein = 0;
+  let currentCalories = 0;
+
+  items.forEach((item) => {
+    const food = foodDb[item.foodId];
+    if (food) {
+      currentCarbs += food.carbs * item.quantity;
+      currentProtein += food.protein * item.quantity;
+      currentCalories += food.calories * item.quantity;
+    }
+  });
+
+  let newItems = items.map((item) => ({ ...item }));
+
+  // 1. Carb correction (especially for diabetic, or general if exceeding limit/3)
+  const singleMealCarbLimit = rules.carbLimit * 0.4; // 40% of daily carb limit
+  if (currentCarbs > singleMealCarbLimit) {
+    let stapleWeight = 0;
+    newItems.forEach((item) => {
+      const food = foodDb[item.foodId];
+      if (food && (food.category === "staple" || food.category === "sweet" || food.category === "snack")) {
+        stapleWeight += food.carbs * item.quantity;
+      }
+    });
+
+    if (stapleWeight > 0) {
+      const neededReduction = currentCarbs - singleMealCarbLimit;
+      const reductionRatio = Math.max(0.3, (stapleWeight - neededReduction) / stapleWeight);
+
+      newItems = newItems.map((item) => {
+        const food = foodDb[item.foodId];
+        if (food && (food.category === "staple" || food.category === "sweet" || food.category === "snack")) {
+          const newQty = Math.max(0.5, Math.round(item.quantity * reductionRatio * 2) / 2);
+          return { ...item, quantity: newQty };
+        }
+        return item;
+      });
+    }
+  }
+
+  // 2. Protein correction (especially for child, or general if protein < target/3)
+  const singleMealProteinTarget = rules.proteinTarget * 0.35; // 35% of daily protein target
+  let updatedProtein = 0;
+  newItems.forEach((item) => {
+    const food = foodDb[item.foodId];
+    if (food) updatedProtein += food.protein * item.quantity;
+  });
+
+  if (updatedProtein < singleMealProteinTarget) {
+    let hasProteinSource = false;
+    newItems = newItems.map((item) => {
+      const food = foodDb[item.foodId];
+      if (food && food.category === "protein") {
+        hasProteinSource = true;
+        // Increase protein item portion up to a max of 2.0
+        const newQty = Math.min(2.0, item.quantity + 0.5);
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    });
+
+    // If no protein source exists, but dal is on the plate, increase dal portion
+    if (!hasProteinSource) {
+      newItems = newItems.map((item) => {
+        if (item.foodId === "dal") {
+          return { ...item, quantity: Math.min(2.0, item.quantity + 0.5) };
+        }
+        return item;
+      });
+    }
+  }
+
+  // 3. Calorie ceiling check
+  const maxMealCalories = rules.calorieTarget * 0.45; // 45% of daily calorie allowance
+  let updatedCal = 0;
+  newItems.forEach((item) => {
+    const food = foodDb[item.foodId];
+    if (food) updatedCal += food.calories * item.quantity;
+  });
+
+  if (updatedCal > maxMealCalories) {
+    const ratio = maxMealCalories / updatedCal;
+    newItems = newItems.map((item) => {
+      const newQty = Math.max(0.5, Math.round(item.quantity * ratio * 2) / 2);
+      return { ...item, quantity: newQty };
+    });
+  }
+
+  return newItems;
 }

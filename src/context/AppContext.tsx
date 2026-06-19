@@ -1,11 +1,18 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { UserProfileType } from "@/lib/food-db";
+import { UserProfileType, FoodItem, BANGLADESHI_FOOD_DB } from "@/lib/food-db";
 
-interface ScannedItem {
+export interface ScannedItem {
   foodId: string;
   quantity: number;
+}
+
+export interface LoggedMeal {
+  id: string;
+  date: string; // YYYY-MM-DD
+  type: "breakfast" | "lunch" | "dinner" | "snack";
+  items: ScannedItem[];
 }
 
 interface AppContextType {
@@ -18,6 +25,14 @@ interface AppContextType {
   handleScanComplete: (items: ScannedItem[]) => void;
   handleManualAdd: (foodId: string) => void;
   clearPlate: () => void;
+  // New States and Handlers
+  loggedMeals: LoggedMeal[];
+  customFoods: Record<string, FoodItem>;
+  mergedFoodDb: Record<string, FoodItem>;
+  handleLogMeal: (type: "breakfast" | "lunch" | "dinner" | "snack") => void;
+  handleDeleteLoggedMeal: (mealId: string) => void;
+  handleCreateCustomFood: (food: FoodItem) => void;
+  handleOptimizePortions: (optimizedItems: ScannedItem[]) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -25,6 +40,8 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppContextProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfileState] = useState<UserProfileType>("general");
   const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
+  const [loggedMeals, setLoggedMeals] = useState<LoggedMeal[]>([]);
+  const [customFoods, setCustomFoods] = useState<Record<string, FoodItem>>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load state from localStorage on mount
@@ -37,6 +54,14 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
       const savedItems = localStorage.getItem("nulens_scanned_items");
       if (savedItems) {
         setScannedItems(JSON.parse(savedItems));
+      }
+      const savedMeals = localStorage.getItem("nulens_logged_meals");
+      if (savedMeals) {
+        setLoggedMeals(JSON.parse(savedMeals));
+      }
+      const savedCustomFoods = localStorage.getItem("nulens_custom_foods");
+      if (savedCustomFoods) {
+        setCustomFoods(JSON.parse(savedCustomFoods));
       }
     } catch (e) {
       console.error("Failed to load state from localStorage:", e);
@@ -65,6 +90,26 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
       console.error("Failed to save items to localStorage:", e);
     }
   }, [scannedItems, isLoaded]);
+
+  // Save loggedMeals to localStorage when they change
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem("nulens_logged_meals", JSON.stringify(loggedMeals));
+    } catch (e) {
+      console.error("Failed to save logged meals to localStorage:", e);
+    }
+  }, [loggedMeals, isLoaded]);
+
+  // Save customFoods to localStorage when they change
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem("nulens_custom_foods", JSON.stringify(customFoods));
+    } catch (e) {
+      console.error("Failed to save custom foods to localStorage:", e);
+    }
+  }, [customFoods, isLoaded]);
 
   const handleUpdateQuantity = (foodId: string, delta: number) => {
     setScannedItems((prev) =>
@@ -102,6 +147,35 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     setScannedItems([]);
   };
 
+  const handleLogMeal = (type: "breakfast" | "lunch" | "dinner" | "snack") => {
+    if (scannedItems.length === 0) return;
+    const newMeal: LoggedMeal = {
+      id: Math.random().toString(36).substring(2, 9),
+      date: new Date().toLocaleDateString("en-CA"), // YYYY-MM-DD
+      type,
+      items: [...scannedItems],
+    };
+    setLoggedMeals((prev) => [...prev, newMeal]);
+    clearPlate();
+  };
+
+  const handleDeleteLoggedMeal = (mealId: string) => {
+    setLoggedMeals((prev) => prev.filter((m) => m.id !== mealId));
+  };
+
+  const handleCreateCustomFood = (food: FoodItem) => {
+    setCustomFoods((prev) => ({
+      ...prev,
+      [food.id]: food,
+    }));
+  };
+
+  const handleOptimizePortions = (optimizedItems: ScannedItem[]) => {
+    setScannedItems(optimizedItems);
+  };
+
+  const mergedFoodDb = { ...BANGLADESHI_FOOD_DB, ...customFoods };
+
   return (
     <AppContext.Provider
       value={{
@@ -114,6 +188,13 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
         handleScanComplete,
         handleManualAdd,
         clearPlate,
+        loggedMeals,
+        customFoods,
+        mergedFoodDb,
+        handleLogMeal,
+        handleDeleteLoggedMeal,
+        handleCreateCustomFood,
+        handleOptimizePortions,
       }}
     >
       {children}
