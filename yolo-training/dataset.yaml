@@ -1,0 +1,13 @@
+path: ./dataset # dataset root dir
+train: images/train # train images (relative to path)
+val: images/val # val images (relative to path)
+
+# Classes
+names:
+  0: Khichuri
+  1: Luchi
+  2: Haleem
+  3: Fuchka
+  4: Aloo Bhorta
+  5: Lal Bhat
+  6: Rui Fish
