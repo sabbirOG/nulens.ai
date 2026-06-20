@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Menu } from "lucide-react";
 import { PRIMARY_NAV } from "@/lib/nav";
 
@@ -18,9 +19,13 @@ export default function AppHeader({
           href="/"
           className="flex items-center gap-2.5 text-left shrink-0"
         >
-          <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center font-bold text-white text-sm">
-            Nu
-          </div>
+          <Image
+            src="/icon-192x192.png"
+            alt="NuLens.ai Logo"
+            width={36}
+            height={36}
+            className="w-9 h-9 rounded-xl object-contain"
+          />
           <span className="font-bold text-lg tracking-tight text-foreground">
             NuLens<span className="text-accent">.ai</span>
           </span>

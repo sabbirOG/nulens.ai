@@ -47,3 +47,7 @@ ENV/
 env/
 *.pyc
 __pycache__/
+
+# yolo temp files and weights
+yolo-training/temp/
+*.pt

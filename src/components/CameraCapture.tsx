@@ -116,7 +116,7 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
         const imgData = canvas.toDataURL("image/webp");
         setCapturedImage(imgData);
         stopCamera();
-        runYoloScan(null, defaultBoxes);
+        runYoloScan(imgData);
       }
     }
   };
@@ -129,40 +129,96 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
         const imgData = reader.result as string;
         setCapturedImage(imgData);
         stopCamera();
-        runYoloScan(null, defaultBoxes);
+        runYoloScan(imgData);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const runYoloScan = (presetItems: typeof presets[0]["items"] | null, boxes: BoundingBox[]) => {
+  const runYoloScan = async (
+    imageBlobOrDataUrl: string | null,
+    presetItems: typeof presets[0]["items"] | null = null,
+    boxes: BoundingBox[] = []
+  ) => {
     setIsScanning(true);
     setScanCompleted(false);
+    setErrorMsg("");
     setScanStep("Initializing AI model layers...");
 
-    setTimeout(() => {
-      setScanStep("Segmenting plate regions of interest...");
-    }, 600);
-
-    setTimeout(() => {
-      setScanStep("Running YOLOv8 classification...");
-    }, 1200);
-
-    setTimeout(() => {
-      setIsScanning(false);
-      setScanCompleted(true);
-      if (presetItems) {
+    if (presetItems) {
+      // Simulate preset delay
+      setTimeout(() => {
+        setScanStep("Segmenting plate regions of interest...");
+      }, 500);
+      setTimeout(() => {
+        setScanStep("Running YOLOv8 classification...");
+      }, 1000);
+      setTimeout(() => {
+        setIsScanning(false);
+        setScanCompleted(true);
         setDetectedItems(presetItems);
         setDetectedBoxes(boxes);
-      } else {
-        setDetectedItems([
-          { foodId: "rice", quantity: 1.5 },
-          { foodId: "dal", quantity: 1 },
-          { foodId: "chicken", quantity: 1 },
-        ]);
-        setDetectedBoxes(defaultBoxes);
+      }, 1500);
+      return;
+    }
+
+    if (!imageBlobOrDataUrl) {
+      setIsScanning(false);
+      return;
+    }
+
+    try {
+      setScanStep("Uploading plate image for analysis...");
+      const stepTimer1 = setTimeout(() => {
+        setScanStep("Segmenting plate regions of interest...");
+      }, 600);
+      const stepTimer2 = setTimeout(() => {
+        setScanStep("Running YOLOv8 classification...");
+      }, 1200);
+
+      const response = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: imageBlobOrDataUrl }),
+      });
+
+      clearTimeout(stepTimer1);
+      clearTimeout(stepTimer2);
+
+      if (!response.ok) {
+        throw new Error("AI analysis service failed");
       }
-    }, 2000);
+
+      const data = await response.json();
+      const detections = data.detections || [];
+
+      // Group duplicate detections into portions
+      const itemsMap: Record<string, number> = {};
+      detections.forEach((det: any) => {
+        itemsMap[det.foodId] = (itemsMap[det.foodId] || 0) + 1;
+      });
+
+      const items = Object.entries(itemsMap).map(([foodId, quantity]) => ({
+        foodId,
+        quantity,
+      }));
+
+      setIsScanning(false);
+      setScanCompleted(true);
+      setDetectedItems(items);
+      setDetectedBoxes(detections);
+    } catch (err: any) {
+      console.error(err);
+      setIsScanning(false);
+      setErrorMsg("Failed to connect to YOLO engine. Using simulated fallback scan.");
+      setDetectedItems([
+        { foodId: "rice", quantity: 1.5 },
+        { foodId: "dal", quantity: 1 },
+        { foodId: "chicken", quantity: 1 },
+      ]);
+      setDetectedBoxes(defaultBoxes);
+      setScanCompleted(true);
+    }
   };
 
   const handleConfirmScan = () => {
@@ -366,7 +422,7 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
                   key={idx}
                   onClick={() => {
                     setCapturedImage(preset.image);
-                    runYoloScan(preset.items, preset.boxes);
+                    runYoloScan(null, preset.items, preset.boxes);
                   }}
                   className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-surface text-sm text-foreground hover:bg-surface-muted transition-colors cursor-pointer"
                 >
