@@ -430,10 +430,11 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
   };
 
   // Resolve DB foods or fallback to static file if not synced yet/offline
-  const mergedFoodDb =
-    Object.keys(dbFoods).length > 0
-      ? dbFoods
-      : { ...BANGLADESHI_FOOD_DB, ...customFoods };
+  const mergedFoodDb = {
+    ...BANGLADESHI_FOOD_DB,
+    ...dbFoods,
+    ...customFoods
+  };
 
   return (
     <AppContext.Provider

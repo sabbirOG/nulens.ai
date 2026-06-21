@@ -220,6 +220,58 @@ export const BANGLADESHI_FOOD_DB: Record<string, FoodItem> = {
     glycemicIndex: 5,
     category: "protein",
     description: "Rui (Rohu fish) cooked in a light cumin-onion gravy with potatoes. Great source of protein and healthy fats."
+  },
+  egg: {
+    id: "egg",
+    name: "Egg (Boiled/Poached)",
+    banglaName: "ডিম (সিদ্ধ/পোচ)",
+    calories: 75,
+    carbs: 0.6,
+    protein: 6.3,
+    fat: 5.0,
+    servingSize: "1 piece (50g)",
+    glycemicIndex: 0,
+    category: "protein",
+    description: "Whole egg, great source of high-quality protein and essential nutrients."
+  },
+  lal_shak: {
+    id: "lal_shak",
+    name: "Lal Shak (Red Spinach)",
+    banglaName: "লাল শাক",
+    calories: 45,
+    carbs: 4.0,
+    protein: 2.5,
+    fat: 2.0,
+    servingSize: "1 serving (100g)",
+    glycemicIndex: 15,
+    category: "vegetable",
+    description: "Red spinach sautéed with garlic, onions, and oil. Rich in iron, fiber, and vitamins."
+  },
+  biryani: {
+    id: "biryani",
+    name: "Kacchi Biryani / Tehari",
+    banglaName: "কাচ্চি বিরিয়ানি / তেহারি",
+    calories: 450,
+    carbs: 60.0,
+    protein: 18.0,
+    fat: 15.0,
+    servingSize: "1 plate (250g)",
+    glycemicIndex: 65,
+    category: "staple",
+    description: "Spiced rice dish cooked with meat (beef or mutton) and potatoes in ghee/oil."
+  },
+  salad: {
+    id: "salad",
+    name: "Salad (Cucumber & Tomato)",
+    banglaName: "সালাদ",
+    calories: 25,
+    carbs: 4.0,
+    protein: 1.0,
+    fat: 0.2,
+    servingSize: "1 bowl (100g)",
+    glycemicIndex: 15,
+    category: "vegetable",
+    description: "Fresh cucumber, tomato, onion, and green chili mix. High fiber, low calorie."
   }
 };
 
