@@ -21,13 +21,6 @@ CLASS_MAPPINGS = {
     "aloo bhorta": {"foodId": "aloo_bhorta", "label": "Aloo Bhorta (Mashed Potatoes)"},
     "lal bhat": {"foodId": "lal_bhat", "label": "Lal Bhat (Red Rice)"},
     "rui fish": {"foodId": "rui_mach", "label": "Rui Macher Jhol (Rui Fish Curry)"},
-    
-    # Pretrained COCO model mappings for testing/fallbacks
-    "bowl": {"foodId": "dal", "label": "Masoor Dal (Red Lentil Curry)"},
-    "rice": {"foodId": "rice", "label": "Plain Rice (Sada Bhat)"},
-    "chicken": {"foodId": "chicken", "label": "Chicken Curry (Murgir Jhol)"},
-    "sandwich": {"foodId": "roti", "label": "Atta Roti (Flatbread)"},
-    "broccoli": {"foodId": "begun_bhaja", "label": "Begun Bhaja (Fried Eggplant)"},
 }
 
 def predict(image_path):

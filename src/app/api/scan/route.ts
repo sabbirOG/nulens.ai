@@ -13,7 +13,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No image data provided" }, { status: 400 });
     }
 
-    // Resolve base64 string
+    // 1. Check if hosted FastAPI server URL is defined (Production / Vercel mode)
+    const yoloApiUrl = process.env.YOLO_API_URL;
+    if (yoloApiUrl) {
+      try {
+        console.log(`Forwarding scan request to external YOLO FastAPI: ${yoloApiUrl}`);
+        const response = await fetch(yoloApiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image }),
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`External API returned status ${response.status}: ${errText}`);
+        }
+
+        const data = await response.json();
+        return NextResponse.json({ detections: data.detections || [] });
+      } catch (apiError: any) {
+        console.error("Error calling external YOLO FastAPI:", apiError);
+        return NextResponse.json(
+          { error: "Hosted model inference server failed", details: apiError.message },
+          { status: 500 }
+        );
+      }
+    }
+
+    // 2. Fallback to local python script subprocess execution (Local dev mode)
     const matches = image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
     if (!matches || matches.length !== 3) {
       return NextResponse.json({ error: "Invalid base64 image data" }, { status: 400 });

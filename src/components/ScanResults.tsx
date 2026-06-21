@@ -17,6 +17,14 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 
+interface PortionChange {
+  name: string;
+  originalQty: number;
+  newQty: number;
+  direction: 'reduced' | 'increased' | 'removed';
+  reason: string;
+}
+
 interface ScanResultsProps {
   items: Array<{ foodId: string; quantity: number }>;
   onUpdateQuantity: (foodId: string, delta: number) => void;
@@ -32,6 +40,10 @@ export default function ScanResults({
 }: ScanResultsProps) {
   const { mergedFoodDb, handleOptimizePortions } = useApp();
   const feedback = getHealthFeedback(items, profileType, mergedFoodDb);
+
+  const [showOptimizeModal, setShowOptimizeModal] = React.useState(false);
+  const [optimizedItems, setOptimizedItems] = React.useState<Array<{ foodId: string; quantity: number }>>([]);
+  const [changes, setChanges] = React.useState<PortionChange[]>([]);
 
   const getGIBadge = (gi: number) => {
     if (gi === 0) return { label: "N/A", style: "bg-stone-100 text-stone-500" };
@@ -62,7 +74,56 @@ export default function ScanResults({
 
   const handleOptimizeClick = () => {
     const optimized = getOptimizedPlate(items, profileType, mergedFoodDb);
-    handleOptimizePortions(optimized);
+    
+    // Compare original items vs optimized items
+    const listChanges: PortionChange[] = [];
+    const optMap = new Map(optimized.map(i => [i.foodId, i.quantity]));
+    
+    items.forEach(orig => {
+      const optQty = optMap.get(orig.foodId) ?? 0;
+      if (optQty !== orig.quantity) {
+        const food = mergedFoodDb[orig.foodId];
+        if (food) {
+          let reason = "";
+          
+          if (optQty < orig.quantity) {
+            if (profileType === "diabetic" && food.glycemicIndex >= 70) {
+              reason = `Has a high Glycemic Index (${food.glycemicIndex}). Reducing it prevents sudden blood sugar spikes.`;
+            } else if (food.category === "staple" || food.category === "sweet") {
+              reason = `High-carb food. Reducing portions lowers overall glycemic load.`;
+            } else {
+              reason = `Helps keep total meal calories balanced.`;
+            }
+            listChanges.push({
+              name: food.name,
+              originalQty: orig.quantity,
+              newQty: optQty,
+              direction: 'reduced',
+              reason
+            });
+          } else if (optQty > orig.quantity) {
+            if (food.category === "protein" || orig.foodId === "dal") {
+              reason = profileType === "child" 
+                ? `Boosts protein intake necessary for healthy growth and bone development.`
+                : `Increases protein to support metabolic health and muscle maintenance.`;
+            } else {
+              reason = `Provides better macronutrient balance.`;
+            }
+            listChanges.push({
+              name: food.name,
+              originalQty: orig.quantity,
+              newQty: optQty,
+              direction: 'increased',
+              reason
+            });
+          }
+        }
+      }
+    });
+
+    setOptimizedItems(optimized);
+    setChanges(listChanges);
+    setShowOptimizeModal(true);
   };
 
   if (items.length === 0) {
@@ -176,6 +237,159 @@ export default function ScanResults({
           })}
         </div>
       </div>
+
+      {/* Portions Swap Modal */}
+      {showOptimizeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-surface border border-border w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden animate-zoom-in max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="p-5 border-b border-border flex items-center justify-between bg-surface-muted/30">
+              <div>
+                <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+                  ✨ NuLens AI Portions Swap
+                </h3>
+                <p className="text-xs text-muted mt-1">
+                  Optimized for your <span className="font-semibold text-accent capitalize">{profileType}</span> profile targets.
+                </p>
+              </div>
+            </div>
+            
+            {/* Scrollable Content */}
+            <div className="p-6 overflow-y-auto space-y-5 flex-1">
+              {/* Side-by-Side Comparison */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Before Card */}
+                <div className="p-4 rounded-xl border border-border bg-surface-muted/20">
+                  <h4 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    Original Plate
+                  </h4>
+                  <div className="space-y-2">
+                    {items.map(i => {
+                      const food = mergedFoodDb[i.foodId];
+                      if (!food) return null;
+                      return (
+                        <div key={i.foodId} className="flex justify-between items-center text-xs p-2 rounded-lg bg-surface border border-border/40">
+                          <span className="text-foreground font-medium">{food.name}</span>
+                          <span className="text-muted tabular-nums font-semibold">{i.quantity}x portion</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Macro Summary */}
+                  <div className="mt-4 pt-3 border-t border-border/65 grid grid-cols-2 gap-2 text-center text-[11px] text-muted">
+                    <div>
+                      <p>Calories</p>
+                      <p className="font-bold text-foreground text-xs mt-0.5">
+                        {Math.round(items.reduce((acc, i) => acc + (mergedFoodDb[i.foodId]?.calories ?? 0) * i.quantity, 0))} kcal
+                      </p>
+                    </div>
+                    <div>
+                      <p>Carbs</p>
+                      <p className="font-bold text-foreground text-xs mt-0.5">
+                        {Math.round(items.reduce((acc, i) => acc + (mergedFoodDb[i.foodId]?.carbs ?? 0) * i.quantity, 0))}g
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* After Card */}
+                <div className="p-4 rounded-xl border border-teal-500/20 bg-teal-500/5">
+                  <h4 className="text-xs font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    NuLens AI Swap
+                  </h4>
+                  <div className="space-y-2">
+                    {optimizedItems.map(i => {
+                      const food = mergedFoodDb[i.foodId];
+                      if (!food) return null;
+                      const origItem = items.find(o => o.foodId === i.foodId);
+                      const isChanged = origItem ? origItem.quantity !== i.quantity : true;
+                      
+                      return (
+                        <div 
+                          key={i.foodId} 
+                          className={`flex justify-between items-center text-xs p-2 rounded-lg ${
+                            isChanged ? 'bg-teal-50 border border-teal-200 text-teal-900 font-semibold' : 'bg-surface border border-border/40 text-foreground'
+                          }`}
+                        >
+                          <span>{food.name}</span>
+                          <span className="tabular-nums">
+                            {isChanged && origItem ? (
+                              <span className="flex items-center gap-1 text-[11px]">
+                                <span className="line-through text-muted/80 font-normal">{origItem.quantity}x</span>
+                                <span>→ {i.quantity}x</span>
+                              </span>
+                            ) : (
+                              <span>{i.quantity}x portion</span>
+                            )}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Macro Summary */}
+                  <div className="mt-4 pt-3 border-t border-border/65 grid grid-cols-2 gap-2 text-center text-[11px] text-muted">
+                    <div>
+                      <p>Calories</p>
+                      <p className="font-bold text-teal-700 text-xs mt-0.5">
+                        {Math.round(optimizedItems.reduce((acc, i) => acc + (mergedFoodDb[i.foodId]?.calories ?? 0) * i.quantity, 0))} kcal
+                      </p>
+                    </div>
+                    <div>
+                      <p>Carbs</p>
+                      <p className="font-bold text-teal-700 text-xs mt-0.5">
+                        {Math.round(optimizedItems.reduce((acc, i) => acc + (mergedFoodDb[i.foodId]?.carbs ?? 0) * i.quantity, 0))}g
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Change Reasons Checklist */}
+              <div className="space-y-2.5">
+                <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  AI Portions Recommendations
+                </h4>
+                <div className="space-y-2">
+                  {changes.map((c, idx) => (
+                    <div key={idx} className="flex gap-2.5 p-3 rounded-xl border border-border bg-surface text-xs leading-relaxed">
+                      <span className="mt-0.5 shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/10 text-amber-600 font-bold">
+                        {c.direction === 'reduced' ? '↓' : '↑'}
+                      </span>
+                      <div>
+                        <p className="font-bold text-foreground">
+                          {c.direction === 'reduced' ? 'Reduced' : 'Increased'} {c.name} ({c.originalQty}x → {c.newQty}x)
+                        </p>
+                        <p className="text-muted mt-0.5 text-xs font-normal">
+                          {c.reason}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-4 border-t border-border bg-surface-muted/30 flex gap-3">
+              <button
+                onClick={() => setShowOptimizeModal(false)}
+                className="flex-1 py-3 rounded-xl btn-secondary text-sm font-semibold transition-all cursor-pointer active:scale-95 duration-100"
+              >
+                Keep My Original Plate
+              </button>
+              <button
+                onClick={() => {
+                  handleOptimizePortions(optimizedItems);
+                  setShowOptimizeModal(false);
+                }}
+                className="flex-1 py-3 rounded-xl btn-primary text-sm font-semibold shadow-sm shadow-accent/20 transition-all cursor-pointer active:scale-95 duration-100"
+              >
+                Accept Healthy Swaps
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

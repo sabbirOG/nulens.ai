@@ -162,7 +162,7 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
         setScanStep("Segmenting plate regions of interest...");
       }, 500);
       setTimeout(() => {
-        setScanStep("Running YOLOv8 classification...");
+        setScanStep("Running NuLens AI classification...");
       }, 1000);
       setTimeout(() => {
         setIsScanning(false);
@@ -184,7 +184,7 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
         setScanStep("Segmenting plate regions of interest...");
       }, 600);
       const stepTimer2 = setTimeout(() => {
-        setScanStep("Running YOLOv8 classification...");
+        setScanStep("Running NuLens AI classification...");
       }, 1200);
 
       const response = await fetch("/api/scan", {
@@ -221,7 +221,7 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
     } catch (err: any) {
       console.error(err);
       setIsScanning(false);
-      setErrorMsg("Failed to connect to YOLO engine. Using simulated fallback scan.");
+      setErrorMsg("Failed to connect to NuLens AI engine. Using simulated fallback scan.");
       setDetectedItems([
         { foodId: "rice", quantity: 1.5 },
         { foodId: "dal", quantity: 1 },
