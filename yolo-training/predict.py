@@ -1,6 +1,13 @@
 import os
 import sys
 import json
+import warnings
+import logging
+
+# Suppress warnings and logger noise from PyTorch and Ultralytics
+warnings.filterwarnings("ignore")
+logging.getLogger("ultralytics").setLevel(logging.ERROR)
+
 import torch
 from ultralytics import YOLO
 
@@ -35,6 +42,7 @@ def predict(image_path):
     else:
         model_path = "yolov8n.pt" # Download automatically if needed
 
+    # Load YOLO model
     model = YOLO(model_path)
     
     # Run prediction
@@ -75,13 +83,7 @@ def predict(image_path):
                 "height": round(height, 1)
             })
             
-    # Default fallback if no objects detected to keep scanner functional
-    if not detections:
-        detections = [
-            {"foodId": "rice", "label": "Plain Rice (Sada Bhat)", "confidence": 85.0, "top": 25.0, "left": 10.0, "width": 50.0, "height": 50.0},
-            {"foodId": "dal", "label": "Masoor Dal (Lentils)", "confidence": 78.0, "top": 15.0, "left": 65.0, "width": 25.0, "height": 30.0}
-        ]
-        
+    # Output detections as JSON to stdout
     print(json.dumps(detections))
 
 if __name__ == "__main__":

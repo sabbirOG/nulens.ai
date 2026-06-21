@@ -76,6 +76,16 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
   const startCamera = async () => {
     setErrorMsg("");
     try {
+      if (typeof window !== "undefined" && !window.isSecureContext) {
+        throw new Error(
+          "Camera access requires a secure context (HTTPS). Please upload a photo instead, or ensure you are visiting via HTTPS."
+        );
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error(
+          "Camera access is not supported by this browser/device in this context. Please upload a photo instead."
+        );
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
         audio: false,
@@ -87,9 +97,10 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
       setIsCameraActive(true);
       setCapturedImage(null);
       setScanCompleted(false);
-    } catch {
+    } catch (err: any) {
       setIsCameraActive(false);
-      setErrorMsg("Camera unavailable. Try uploading a photo instead.");
+      console.error("Camera capture error:", err);
+      setErrorMsg(err.message || "Camera access denied. Please allow camera permissions or upload a photo instead.");
     }
   };
 
@@ -329,13 +340,18 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
               </div>
 
               <div className="flex flex-col w-full gap-2.5 max-w-xs">
-                <button
-                  onClick={startCamera}
-                  className="w-full py-3.5 rounded-xl btn-primary text-sm flex items-center justify-center gap-2 touch-target cursor-pointer"
-                >
+                <label className="relative w-full py-3.5 rounded-xl btn-primary text-sm flex items-center justify-center gap-2 cursor-pointer touch-target">
                   <Camera className="w-4 h-4" />
                   Open camera
-                </button>
+                  <input
+                    type="file"
+                    onChange={handleFileUpload}
+                    accept="image/*"
+                    capture="environment"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    aria-label="Take photo with camera"
+                  />
+                </label>
                 <label className="relative w-full py-3.5 rounded-xl btn-secondary text-sm flex items-center justify-center gap-2 cursor-pointer touch-target">
                   <Upload className="w-4 h-4 text-muted" />
                   Upload photo
@@ -343,9 +359,8 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
                     type="file"
                     onChange={handleFileUpload}
                     accept="image/*"
-                    capture="environment"
                     className="absolute inset-0 opacity-0 cursor-pointer"
-                    aria-label="Upload plate photo"
+                    aria-label="Upload photo from gallery"
                   />
                 </label>
               </div>
@@ -370,28 +385,41 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
           </div>
 
           <div className="space-y-2 mb-5">
-            <p className="text-xs text-muted">The following items were identified on your plate. You can modify portions on the next screen:</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-              {detectedItems.map((item, idx) => {
-                const food = BANGLADESHI_FOOD_DB[item.foodId];
-                const confidence = detectedBoxes[idx]?.confidence || 80;
-                if (!food) return null;
-                return (
-                  <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-surface-muted/60 text-xs">
-                    <span className="font-medium text-foreground">{food.name}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 font-semibold">
-                      {item.quantity}x portion ({confidence}% matching)
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            {detectedItems.length > 0 ? (
+              <>
+                <p className="text-xs text-muted">The following items were identified on your plate. You can modify portions on the next screen:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                  {detectedItems.map((item, idx) => {
+                    const food = BANGLADESHI_FOOD_DB[item.foodId];
+                    const confidence = detectedBoxes[idx]?.confidence || 80;
+                    if (!food) return null;
+                    return (
+                      <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-surface-muted/60 text-xs">
+                        <span className="font-medium text-foreground">{food.name}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 font-semibold">
+                          {item.quantity}x portion ({confidence}% matching)
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-500">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">No food items detected</p>
+                  <p className="text-muted-foreground mt-0.5">We couldn't recognize any Bangladeshi food in this photo. Please retake or upload a clearer photo containing recognizable dishes.</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2.5">
             <button
               onClick={handleConfirmScan}
-              className="flex-1 py-3 rounded-xl btn-primary text-sm font-semibold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-accent/20"
+              disabled={detectedItems.length === 0}
+              className="flex-1 py-3 rounded-xl btn-primary text-sm font-semibold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-accent/20 disabled:opacity-50 disabled:pointer-events-none"
             >
               Analyze Plate & View Suggestions
             </button>
