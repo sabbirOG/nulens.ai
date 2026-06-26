@@ -162,7 +162,7 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
         setScanStep("Segmenting plate regions of interest...");
       }, 500);
       setTimeout(() => {
-        setScanStep("Running NuLens AI classification...");
+        setScanStep("Running NuLens AI analysis...");
       }, 1000);
       setTimeout(() => {
         setIsScanning(false);
@@ -184,7 +184,7 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
         setScanStep("Segmenting plate regions of interest...");
       }, 600);
       const stepTimer2 = setTimeout(() => {
-        setScanStep("Running NuLens AI classification...");
+        setScanStep("Running NuLens AI analysis...");
       }, 1200);
 
       const response = await fetch("/api/scan", {

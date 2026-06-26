@@ -272,6 +272,84 @@ export const BANGLADESHI_FOOD_DB: Record<string, FoodItem> = {
     glycemicIndex: 15,
     category: "vegetable",
     description: "Fresh cucumber, tomato, onion, and green chili mix. High fiber, low calorie."
+  },
+  watermelon: {
+    id: "watermelon",
+    name: "Watermelon (Tormuj)",
+    banglaName: "তরমুজ",
+    calories: 30,
+    carbs: 8.0,
+    protein: 0.6,
+    fat: 0.2,
+    servingSize: "1 cup (150g)",
+    glycemicIndex: 72,
+    category: "vegetable",
+    description: "Fresh sweet watermelon, highly hydrating but high glycemic index."
+  },
+  juice: {
+    id: "juice",
+    name: "Fruit Juice",
+    banglaName: "ফলের রস",
+    calories: 120,
+    carbs: 28.0,
+    protein: 0.5,
+    fat: 0.0,
+    servingSize: "1 glass (250ml)",
+    glycemicIndex: 65,
+    category: "snack",
+    description: "Sweet fruit juice. High in sugar, low in fiber."
+  },
+  beguni: {
+    id: "beguni",
+    name: "Beguni (Fried Eggplant in Batter)",
+    banglaName: "বেগুনি",
+    calories: 140,
+    carbs: 12.0,
+    protein: 2.0,
+    fat: 10.0,
+    servingSize: "2 pieces",
+    glycemicIndex: 60,
+    category: "snack",
+    description: "Eggplant sliced thin and deep fried in besan batter."
+  },
+  alur_chop: {
+    id: "alur_chop",
+    name: "Alur Chop (Potato Snack)",
+    banglaName: "আলুর চপ",
+    calories: 160,
+    carbs: 22.0,
+    protein: 3.0,
+    fat: 7.0,
+    servingSize: "1 piece",
+    glycemicIndex: 75,
+    category: "snack",
+    description: "Deep fried potato mash coated in batter."
+  },
+  peyaju: {
+    id: "peyaju",
+    name: "Peyaju (Onion Lentil Fritter)",
+    banglaName: "পেঁয়াজু",
+    calories: 110,
+    carbs: 12.0,
+    protein: 4.0,
+    fat: 5.0,
+    servingSize: "3 pieces",
+    glycemicIndex: 45,
+    category: "snack",
+    description: "Crispy deep fried onion and lentil fritters."
+  },
+  chola: {
+    id: "chola",
+    name: "Chola Boot (Chickpeas)",
+    banglaName: "ছোলা ভুনা",
+    calories: 160,
+    carbs: 22.0,
+    protein: 8.0,
+    fat: 4.0,
+    servingSize: "1 small bowl",
+    glycemicIndex: 35,
+    category: "snack",
+    description: "Spiced chickpeas cooked with onions and chilies. Great source of protein and fiber."
   }
 };
 
