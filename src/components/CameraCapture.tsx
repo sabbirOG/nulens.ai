@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { Camera, Upload, AlertCircle, RefreshCw, Layers, CheckCircle2, Play } from "lucide-react";
+import { Camera, Upload, AlertCircle, RefreshCw, Layers, CheckCircle2 } from "lucide-react";
 import { BANGLADESHI_FOOD_DB } from "@/lib/food-db";
 import { useApp } from "@/context/AppContext";
 
@@ -12,6 +12,7 @@ interface CameraCaptureProps {
 }
 
 interface BoundingBox {
+  foodId?: string;
   label: string;
   confidence: number;
   top: number; // percentage
@@ -67,11 +68,7 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
     },
   ];
 
-  const defaultBoxes: BoundingBox[] = [
-    { label: "Plain Rice (Sada Bhat)", confidence: 85, top: 25, left: 10, width: 50, height: 50 },
-    { label: "Masoor Dal (Lentils)", confidence: 78, top: 15, left: 65, width: 25, height: 30 },
-    { label: "Chicken Curry", confidence: 82, top: 50, left: 50, width: 40, height: 40 },
-  ];
+
 
   const startCamera = async () => {
     setErrorMsg("");
@@ -97,10 +94,11 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
       setIsCameraActive(true);
       setCapturedImage(null);
       setScanCompleted(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setIsCameraActive(false);
       console.error("Camera capture error:", err);
-      setErrorMsg(err.message || "Camera access denied. Please allow camera permissions or upload a photo instead.");
+      const message = err instanceof Error ? err.message : "Camera access denied. Please allow camera permissions or upload a photo instead.";
+      setErrorMsg(message);
     }
   };
 
@@ -205,8 +203,10 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
 
       // Group duplicate detections into portions
       const itemsMap: Record<string, number> = {};
-      detections.forEach((det: any) => {
-        itemsMap[det.foodId] = (itemsMap[det.foodId] || 0) + 1;
+      detections.forEach((det: BoundingBox) => {
+        if (det.foodId) {
+          itemsMap[det.foodId] = (itemsMap[det.foodId] || 0) + 1;
+        }
       });
 
       const items = Object.entries(itemsMap).map(([foodId, quantity]) => ({
@@ -218,7 +218,7 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
       setScanCompleted(true);
       setDetectedItems(items);
       setDetectedBoxes(detections);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setIsScanning(false);
       setErrorMsg("Failed to connect to NuLens AI engine. Please try again or check your connection.");
@@ -407,7 +407,7 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-medium">No food items detected</p>
-                  <p className="text-muted-foreground mt-0.5">We couldn't recognize any Bangladeshi food in this photo. Please retake or upload a clearer photo containing recognizable dishes.</p>
+                  <p className="text-muted-foreground mt-0.5">We couldn&apos;t recognize any Bangladeshi food in this photo. Please retake or upload a clearer photo containing recognizable dishes.</p>
                 </div>
               </div>
             )}

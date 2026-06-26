@@ -10,7 +10,7 @@ export default function OfflineFallback() {
       </div>
       
       <h1 className="text-3xl font-semibold tracking-tight mb-3">
-        You're Offline
+        You&apos;re Offline
       </h1>
       
       <p className="text-muted-foreground max-w-sm mx-auto mb-8">

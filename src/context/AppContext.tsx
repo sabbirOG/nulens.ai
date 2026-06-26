@@ -110,7 +110,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
               const mappedMeals: LoggedMeal[] = scansData.map((row) => ({
                 id: row.id,
                 date: row.date,
-                type: row.meal_type as any,
+                type: row.meal_type as LoggedMeal["type"],
                 items: row.detected_items as ScannedItem[],
                 imageUrl: row.image_url || undefined,
               }));
@@ -137,7 +137,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
                   fat: Number(row.fat),
                   servingSize: row.serving_size,
                   glycemicIndex: row.gi_index,
-                  category: row.category as any,
+                  category: row.category as FoodItem["category"],
                   description: row.description || "",
                 };
                 mappedFoods[row.id] = item;
@@ -150,7 +150,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
               setCustomFoods(systemCustom);
             }
           }
-        } catch (e) {
+        } catch (e: unknown) {
           console.error("Supabase initialization failed, falling back to localStorage:", e);
           loadLocalStorageFallback();
         }
@@ -178,7 +178,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
         if (savedCustomFoods) {
           setCustomFoods(JSON.parse(savedCustomFoods));
         }
-      } catch (e) {
+      } catch (e: unknown) {
         console.error("Failed to load state from localStorage:", e);
       }
     }
@@ -191,7 +191,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     if (!isLoaded) return;
     try {
       localStorage.setItem("nulens_scanned_items", JSON.stringify(scannedItems));
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("Failed to save items to localStorage:", e);
     }
   }, [scannedItems, isLoaded]);
@@ -209,7 +209,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
             { onConflict: "user_id" }
           );
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("Failed to sync profile change:", e);
     }
   };
@@ -257,7 +257,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     const dateStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
     const feedback = getHealthFeedback(scannedItems, profile, mergedFoodDb);
 
-    const tempId = Math.random().toString(36).substring(2, 9);
+    const tempId = crypto.randomUUID().substring(0, 8);
     const newMealLocal: LoggedMeal = {
       id: tempId,
       date: dateStr,
@@ -274,7 +274,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
     if (activePlateImage && supabaseActive && userId) {
       try {
         const blob = await base64ToBlob(activePlateImage);
-        const fileName = `${userId}/${Date.now()}.webp`;
+        const fileName = `${userId}/${new Date().getTime()}.webp`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("meal-photos")
@@ -291,7 +291,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
             .getPublicUrl(fileName);
           uploadedUrl = urlData?.publicUrl || null;
         }
-      } catch (e) {
+      } catch (e: unknown) {
         console.error("Failed to upload image to Supabase Storage:", e);
       }
     }
@@ -321,7 +321,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
             )
           );
         }
-      } catch (e) {
+      } catch (e: unknown) {
         console.error("Failed to log scan to Supabase:", e);
       }
     } else {
@@ -333,7 +333,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
           "nulens_logged_meals",
           JSON.stringify([...parsed, newMealLocal])
         );
-      } catch (e) {
+      } catch (e: unknown) {
         console.error("LocalStorage save failed:", e);
       }
     }
@@ -359,7 +359,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
             await supabase.storage.from("meal-photos").remove([filePath]);
           }
         }
-      } catch (e) {
+      } catch (e: unknown) {
         console.error("Failed to delete scan from Supabase:", e);
       }
     } else {
@@ -373,7 +373,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
             JSON.stringify(parsed.filter((m) => m.id !== mealId))
           );
         }
-      } catch (e) {
+      } catch (e: unknown) {
         console.error("LocalStorage delete failed:", e);
       }
     }
@@ -407,7 +407,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
           user_id: userId,
         });
         if (error) throw error;
-      } catch (e) {
+      } catch (e: unknown) {
         console.error("Failed to save custom food to Supabase:", e);
       }
     } else {
@@ -419,7 +419,7 @@ export function AppContextProvider({ children }: { children: React.ReactNode }) 
           "nulens_custom_foods",
           JSON.stringify({ ...parsed, [food.id]: food })
         );
-      } catch (e) {
+      } catch (e: unknown) {
         console.error("LocalStorage custom food save failed:", e);
       }
     }

@@ -440,7 +440,6 @@ export function getHealthFeedback(
   let totalCalories = 0;
   let totalCarbs = 0;
   let totalProtein = 0;
-  let totalFat = 0;
   let highGICount = 0;
   let hasStaple = false;
   let hasProtein = false;
@@ -452,7 +451,6 @@ export function getHealthFeedback(
       totalCalories += food.calories * item.quantity;
       totalCarbs += food.carbs * item.quantity;
       totalProtein += food.protein * item.quantity;
-      totalFat += food.fat * item.quantity;
       
       if (food.glycemicIndex >= 70) {
         highGICount += item.quantity;
@@ -503,7 +501,6 @@ export function getHealthFeedback(
     }
     
   } else if (profileType === 'child') {
-    const targets = PROFILE_RECOMMENDATIONS.child;
     
     // Check protein content
     if (totalProtein < 15) {
@@ -564,15 +561,11 @@ export function getOptimizedPlate(
 ): Array<{ foodId: string; quantity: number }> {
   const rules = PROFILE_RECOMMENDATIONS[profileType];
   let currentCarbs = 0;
-  let currentProtein = 0;
-  let currentCalories = 0;
 
   items.forEach((item) => {
     const food = foodDb[item.foodId];
     if (food) {
       currentCarbs += food.carbs * item.quantity;
-      currentProtein += food.protein * item.quantity;
-      currentCalories += food.calories * item.quantity;
     }
   });
 

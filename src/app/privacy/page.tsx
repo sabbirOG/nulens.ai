@@ -42,14 +42,14 @@ export default function PrivacyPage() {
           <section>
             <h3 className="font-semibold text-foreground text-sm mb-1.5">2. Camera & Image Usage</h3>
             <p>
-              When you use the scan feature, the application requests access to your device's camera. Images captured via the scanner are processed on your device or parsed transiently for food categorization. We do not store or upload your food images to persistent remote servers.
+              When you use the scan feature, the application requests access to your device&apos;s camera. Images captured via the scanner are processed on your device or parsed transiently for food categorization. We do not store or upload your food images to persistent remote servers.
             </p>
           </section>
 
           <section>
             <h3 className="font-semibold text-foreground text-sm mb-1.5">3. Local Storage</h3>
             <p>
-              We use your browser's local storage (`localStorage`) to remember your selected diet profile (General, Diabetic, Child) and your active scanned plate items. This data stays on your machine and is never shared with third parties. You can clear this data at any time by clicking "Clear Plate" or clearing your browser cookies.
+              We use your browser&apos;s local storage (`localStorage`) to remember your selected diet profile (General, Diabetic, Child) and your active scanned plate items. This data stays on your machine and is never shared with third parties. You can clear this data at any time by clicking &quot;Clear Plate&quot; or clearing your browser cookies.
             </p>
           </section>
 

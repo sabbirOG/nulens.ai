@@ -31,10 +31,11 @@ export async function POST(request: NextRequest) {
 
         const data = await response.json();
         return NextResponse.json({ detections: data.detections || [] });
-      } catch (apiError: any) {
+      } catch (apiError: unknown) {
         console.error("Error calling external YOLO FastAPI:", apiError);
+        const details = apiError instanceof Error ? apiError.message : String(apiError);
         return NextResponse.json(
-          { error: "Hosted model inference server failed", details: apiError.message },
+          { error: "Hosted model inference server failed", details },
           { status: 500 }
         );
       }
@@ -90,10 +91,11 @@ export async function POST(request: NextRequest) {
       } else {
         throw new SyntaxError(`No valid JSON output found. Raw output: ${stdoutTrimmed}`);
       }
-    } catch (execError: any) {
+    } catch (execError: unknown) {
       console.error("Error executing Python YOLO prediction script:", execError);
+      const details = execError instanceof Error ? execError.message : String(execError);
       return NextResponse.json(
-        { error: "Model inference execution failed", details: execError.message },
+        { error: "Model inference execution failed", details },
         { status: 500 }
       );
     } finally {
@@ -104,8 +106,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ detections });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API scan route error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

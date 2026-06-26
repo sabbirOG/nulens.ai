@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { BANGLADESHI_FOOD_DB } from "@/lib/food-db";
 import PlateBalanceGauge from "@/components/PlateBalanceGauge";
 import ScanResults from "@/components/ScanResults";
 import { useApp } from "@/context/AppContext";
@@ -42,6 +41,7 @@ function ResultsContent() {
 
   useEffect(() => {
     if (searchParams.get("manualAdd") === "true") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowManualAdd(true);
     }
   }, [searchParams]);
@@ -50,6 +50,7 @@ function ResultsContent() {
   useEffect(() => {
     const keys = Object.keys(mergedFoodDb);
     if (keys.length > 0 && !keys.includes(manualFoodId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setManualFoodId(keys[0]);
     }
   }, [mergedFoodDb, manualFoodId]);
@@ -179,7 +180,7 @@ function ResultsContent() {
           <div className="card-surface p-5 bg-gradient-to-br from-teal-500/5 to-emerald-500/5 border border-teal-500/10">
             <h2 className="section-title mb-1.5">Log to Daily Tracker</h2>
             <p className="text-xs text-muted mb-4">
-              Add this plate's total macros and calories to your daily intake history.
+              Add this plate&apos;s total macros and calories to your daily intake history.
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               <button
@@ -300,7 +301,7 @@ function ResultsContent() {
                   <label className="text-[10px] uppercase font-bold text-muted tracking-wider block mb-1">Category</label>
                   <select
                     value={cfCategory}
-                    onChange={(e) => setCfCategory(e.target.value as any)}
+                    onChange={(e) => setCfCategory(e.target.value as "staple" | "protein" | "vegetable" | "snack" | "sweet")}
                     className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-accent"
                   >
                     <option value="staple">Staple</option>

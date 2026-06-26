@@ -5,13 +5,11 @@ import { usePathname, useRouter } from "next/navigation";
 import AppHeader from "./AppHeader";
 import MobileDrawer from "./MobileDrawer";
 import BottomNav from "./BottomNav";
-import { useApp } from "@/context/AppContext";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { handleManualAdd } = useApp();
 
   const handleManualAddRedirect = () => {
     // Redirect to results and open manual add modal/section if needed
