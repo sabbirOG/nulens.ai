@@ -384,12 +384,15 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
               <>
                 <p className="text-xs text-muted">The following items were identified on your plate. You can modify portions on the next screen:</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                  {detectedItems.map((item, idx) => {
+                  {detectedItems.map((item) => {
                     const food = BANGLADESHI_FOOD_DB[item.foodId];
-                    const confidence = detectedBoxes[idx]?.confidence || 80;
                     if (!food) return null;
+                    const matchingBoxes = detectedBoxes.filter(box => box.foodId === item.foodId);
+                    const confidence = matchingBoxes.length > 0 
+                      ? Math.round(matchingBoxes.reduce((acc, box) => acc + box.confidence, 0) / matchingBoxes.length)
+                      : 80;
                     return (
-                      <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-surface-muted/60 text-xs">
+                      <div key={item.foodId} className="flex items-center justify-between p-2.5 rounded-xl bg-surface-muted/60 text-xs">
                         <span className="font-medium text-foreground">{food.name}</span>
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 font-semibold">
                           {item.quantity}x portion ({confidence}% matching)
