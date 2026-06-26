@@ -43,11 +43,11 @@ test.describe('NuLens.ai E2E flows', () => {
     await expect(manualAddCard).toBeVisible();
     
     // Select something else like Roti
-    await page.locator('select').nth(1).selectOption({ label: 'Atta Roti (Flatbread)' });
-    await page.click('button:has-text("Add item")');
+    await page.locator('select').first().selectOption('ruti');
+    await page.click('#manual-add button:has-text("Add item")');
     
     // Expect the roti to be visible in the list now
-    await expect(page.locator('h3:has-text("Atta Roti (Flatbread)")')).toBeVisible();
+    await expect(page.locator('p:has-text("Atta Roti (Flatbread)")').first()).toBeVisible();
     
     // We can clear the plate
     await page.click('button:has-text("Clear plate")');
