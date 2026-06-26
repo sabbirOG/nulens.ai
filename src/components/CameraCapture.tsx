@@ -221,14 +221,9 @@ export default function CameraCapture({ onScanComplete }: CameraCaptureProps) {
     } catch (err: any) {
       console.error(err);
       setIsScanning(false);
-      setErrorMsg("Failed to connect to NuLens AI engine. Using simulated fallback scan.");
-      setDetectedItems([
-        { foodId: "rice", quantity: 1.5 },
-        { foodId: "dal", quantity: 1 },
-        { foodId: "chicken", quantity: 1 },
-      ]);
-      setDetectedBoxes(defaultBoxes);
-      setScanCompleted(true);
+      setErrorMsg("Failed to connect to NuLens AI engine. Please try again or check your connection.");
+      setScanCompleted(false);
+      setCapturedImage(null);
     }
   };
 
